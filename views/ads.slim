@@ -1,0 +1,21 @@
+h1 Skapa en ny annons
+
+form action="/ads" method="POST" enctype="multipart/form-data"
+  input type="text" name="title" placeholder="Vad säljer du?" required
+  textarea name="description" placeholder="Beskrivning..."
+  input type="number" name="price" placeholder="Pris i kr"
+
+  
+  label Välj kategori:
+  select name="category_id"
+    - @categories.each do |category|
+      option value="#{category['category_id']}" = category['name']
+  
+  label Välj stad:
+  select name="location_id"
+    - @locations.each do |loc|
+      option value="#{loc['location_id']}" = loc['city']
+  
+  label Lägg till bild:
+  input type="file" name="image" accept="image/*"
+  button type="submit" Publicera annons

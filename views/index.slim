@@ -1,25 +1,8 @@
-<!DOCTYPE html>
-html lang="en"
-    head
-        meta charset="UTF-8"/
-        meta name="viewport" content="width=device-width, initial-scale=1.0"/
-        title Document
-        
-    head 
-        title Profile -#{"user['name]"}
-        link rel="stylesheet" href=""/
-    body 
-        h1 Välkommen, #{@user['name']}
-            p = @user['email']
-            p = @user['telephone']
+h1 index html sidan 
 
-        h1 annons, #{@ads['title']}
-            p = @user['description']
-            p = @user['price']
-            p = @user['date_of_creation']
-            p = @user['status']
-        h2 Messeges, #{@messeges['content']}
-        
-
+nav 
+    a href="/login" Logga in här
+    a href="/register" registrera dig här 
+    a href="/ads" registrera en annons här 
 
         

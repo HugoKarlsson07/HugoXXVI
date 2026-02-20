@@ -54,6 +54,7 @@ def create_tables(db)
     price REAL,
     date_of_creation DATETIME DEFAULT CURRENT_TIMESTAMP,
     status TEXT,
+    image_path TEXT,
     user_id INTEGER,
     category_id INTEGER,
     location_id INTEGER,
