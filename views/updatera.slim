@@ -1,0 +1,33 @@
+h1 Uppdatera din annons
+
+nav
+  a href="/" Tillbaka
+
+form action="/update_ad/#{@ad['ad_id']}" method="POST" enctype="multipart/form-data"
+  input type="text" name="title" placeholder="Vad säljer du?" required value="#{@ad['title']}"
+  textarea name="description" placeholder="Beskrivning..."= @ad['description']
+  input type="number" name="price" placeholder="Pris i kr" value="#{@ad['price']}"
+
+  label Välj kategori:
+  select name="category_id"
+    - @categories.each do |category|
+      - if category['category_id'] == @ad['category_id']
+        option value="#{category['category_id']}" selected="selected" = category['name']
+      - else
+        option value="#{category['category_id']}" = category['name']
+  
+  label Välj stad:
+  select name="location_id"
+    - @locations.each do |loc|
+      - if loc['location_id'] == @ad['location_id']
+        option value="#{loc['location_id']}" selected="selected" = loc['city']
+      - else
+        option value="#{loc['location_id']}" = loc['city']
+  
+  label Lägg till bild (lämna tomt för att behålla nuvarande):
+  input type="file" name="image" accept="image/*"
+  if @ad['image_path']
+    p Nuvarande bild:
+    img src="#{@ad['image_path']}" alt="Annonsbild" width="150"
+
+  button type="submit" Uppdatera annons

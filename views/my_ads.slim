@@ -1,0 +1,28 @@
+h1 Mina annonser
+
+nav
+    a href="/" Tillbaka
+    a href="/ads" Skapa ny annons
+
+- if @my_ads.empty?
+    p Du har inga annonser än.
+- else
+    table
+        thead
+            tr
+                th Titel
+                th Beskrivning
+                th Pris
+                th Status
+                th Åtgärd
+        tbody
+            - @my_ads.each do |ad|
+                tr
+                    td = ad["title"]
+                    td = ad["description"]
+                    td = "#{ad["price"]} kr"
+                    td = ad["status"]
+                    td 
+                        form action="/delete_ad/#{ad["ad_id"]}" method="post" style="display:inline;"
+                            button type="submit" onclick="return confirm('Är du säker?')" Ta bort
+                        a href="/update_ad/#{ad["ad_id"]}" Redigera

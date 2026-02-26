@@ -7,3 +7,12 @@ nav{
     justify-content: space-between;
     width: 100%;
 }
+
+img {
+    display: block;
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    padding: 10px;
+}

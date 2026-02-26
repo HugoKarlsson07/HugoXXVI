@@ -1,8 +1,18 @@
-h1 index html sidan 
-
+h1 sökruta, loggin, notiser, skappa ad
 nav 
     a href="/login" Logga in här
     a href="/register" registrera dig här 
     a href="/ads" registrera en annons här 
+    a href="/my_ads" dina annonser 
 
+body 
+    section 
+        - @ads.each do |ad|
+            .ad-card
+                h2 = ad["title"]
+                p = ad["description"]
+                p.price = "#{ad["price"]} kr"
+                p.status = ad["status"]
+                - if ad["image_path"]
+                    img src=ad["image_path"] alt=ad["title"]
         
