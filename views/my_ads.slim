@@ -6,23 +6,18 @@ nav
 
 - if @my_ads.empty?
     p Du har inga annonser än.
-- else
-    table
-        thead
-            tr
-                th Titel
-                th Beskrivning
-                th Pris
-                th Status
-                th Åtgärd
-        tbody
+- else 
+    .container 
+        body
             - @my_ads.each do |ad|
-                tr
-                    td = ad["title"]
-                    td = ad["description"]
-                    td = "#{ad["price"]} kr"
-                    td = ad["status"]
-                    td 
+                .ad-card
+                    d = ad["title"]
+                    - if ad["image_path"]
+                        img.ad-image src=ad["image_path"] alt=ad["title"]
+                    d = ad["description"]
+                    d = "#{ad["price"]} kr"
+                    d = ad["status"]
+                    d 
                         form action="/delete_ad/#{ad["ad_id"]}" method="post" style="display:inline;"
                             button type="submit" onclick="return confirm('Är du säker?')" Ta bort
                         a href="/update_ad/#{ad["ad_id"]}" Redigera

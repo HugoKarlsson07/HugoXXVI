@@ -1,9 +1,11 @@
 h1 Login
+nav 
+  a href="/" Tillbaka
+.ad-card
+  form action="/login" method="post"
+    input type="text" name="email" placeholder="Emailadress" required 
+    input type="password" name="pwd" placeholder="Password" required
+    input type="submit" value="Login"
 
-form action="/login" method="post"
-  input type="text" name="email" placeholder="Emailadress" required 
-  input type="password" name="pwd" placeholder="Password" required
-  input type="submit" value="Login"
-
-p Don't have an account? 
-  a href="/register" Register here
+  p Har du inget konto ? 
+    a href="/register" Registrear Här

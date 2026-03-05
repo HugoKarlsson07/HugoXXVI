@@ -1,18 +1,22 @@
-h1 sökruta, loggin, notiser, skappa ad
+h1 Sökruta, Loggin, Notiser, Skappa Annons! 
 nav 
     a href="/login" Logga in här
-    a href="/register" registrera dig här 
-    a href="/ads" registrera en annons här 
-    a href="/my_ads" dina annonser 
+    a href="/register" Registrera dig här 
+    a href="/ads" Registrera en annons här 
+    a href="/my_ads" Dina annonser 
+
+
 
 body 
     section 
-        - @ads.each do |ad|
-            .ad-card
-                h2 = ad["title"]
-                p = ad["description"]
-                p.price = "#{ad["price"]} kr"
-                p.status = ad["status"]
-                - if ad["image_path"]
-                    img src=ad["image_path"] alt=ad["title"]
+         .container 
+            - @ads.each do |ad|
+                .ad-card
+                    h2 = ad["title"]
+                    - if ad["image_path"]
+                        img.ad-image src=ad["image_path"] alt=ad["title"]
+                    p = ad["description"]
+                    p.price  = "#{ad["price"]} kr"
+                    p.status = ad["status"]
+                    
         

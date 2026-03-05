@@ -13,8 +13,42 @@ get('/ads') do
   user_inloggad() 
   db()
   load_select_data()
-  
   slim(:"ads")
+end
+get('/') do
+  db()
+  @ads = db.execute("SELECT * FROM ads")
+  slim(:index)
+end
+get('/login') do
+  slim(:login)
+end
+get('/register') do
+  slim(:register)
+end
+#den här är bra att ha om jag vill att det ska fungera
+get('/error') do
+  slim(:error)
+end
+get('/my_ads') do
+  user_inloggad()
+  db() 
+  @my_ads = db.execute("SELECT * FROM ads WHERE user_id = ?", [session[:user_id]])
+  slim(:"my_ads")
+end
+
+get('/update_ad/:id') do
+  user_inloggad()
+  db()
+
+  ad_id = params[:id].to_i
+  @ad = db.execute("SELECT * FROM ads WHERE ad_id = ?", [ad_id]).first
+  if @ad.nil? || @ad['user_id'] != session[:user_id]
+    redirect '/error'
+  end
+ load_select_data() #ladar in categorier och locations
+
+  slim(:"updatera")
 end
 
 post('/ads') do
@@ -30,7 +64,7 @@ post('/ads') do
   # Hantera bilduppladdning
   if params[:image] && params[:image][:filename]
     filename = params[:image][:filename]
-    # Skapa en unik filnamn för att undvika konflikter
+    # Skapa en unik filnamn för att undvika konflikter genom att ge den tiden som den laddas upp och sen fil namnet som den hade innan.
     unique_filename = "#{Time.now.to_i}_#{filename}"
     file_path = File.join('public', 'img', unique_filename)
     
@@ -52,18 +86,6 @@ post('/ads') do
   redirect('/')
 end
 
-get('/') do
-  db()
-  @ads = db.execute("SELECT * FROM ads")
-  slim(:index)
-end
-
-get('/login') do
-  slim(:login)
-end
-get('/register') do
-  slim(:register)
-end
 
 
 post('/register') do
@@ -73,9 +95,15 @@ post('/register') do
   telephone = params["telephone"]
   db()
 
-  if existing_user(email)
-    redirect('/error')
+  # Validera att alla fält är ifyllda 
+  if name.empty? || email.empty? || pwd.empty? || telephone.empty?
+    redirect('/register')
   end
+   #kanske inte den finaste lösninge men den fungerar så att det inte går att skappa ett konto som inte går att logga in på.
+  if existing_user(email)
+    redirect('/register')
+  end
+
 
   # lösenord
   pwd_digest = BCrypt::Password.create(pwd)
@@ -108,32 +136,8 @@ post('/login') do
     redirect('/error')
   end
 end
-get('/my_ads') do
-  user_inloggad()
-  db()
-  
-  @my_ads = db.execute("SELECT * FROM ads WHERE user_id = ?", [session[:user_id]])
-  
-  slim(:"my_ads")
-end
-
-get('/update_ad/:id') do
-  user_inloggad()
-  db()
-
-  ad_id = params[:id].to_i
-  @ad = db.execute("SELECT * FROM ads WHERE ad_id = ?", [ad_id]).first
-
-  
-  if @ad.nil? || @ad['user_id'] != session[:user_id]
-    redirect '/error'
-  end
 
 
- load_select_data() #ladar in categorier och locations
-
-  slim(:"updatera")
-end
 
 #updaterar ads
 post('/update_ad/:id') do
@@ -158,8 +162,8 @@ post('/update_ad/:id') do
     filename = params[:image][:filename]
     unique_filename = "#{Time.now.to_i}_#{filename}"
     file_path = File.join('public', 'img', unique_filename)
-    File.open(file_path, 'wb') do |f|
-      f.write(params[:image][:tempfile].read)
+    File.open(file_path, 'wb') do |file|
+      file.write(params[:image][:tempfile].read)
     end
     image_path = "/img/#{unique_filename}"
   end
@@ -176,9 +180,9 @@ post('/delete_ad/:id') do
 
   ad_id = params[:id].to_i
   
-  # Kontrollera att användaren äger annonsen
   ad = db.execute("SELECT * FROM ads WHERE ad_id = ?", [ad_id]).first
-  
+
+  # Kontrollera att användaren äger annonsen för att den ska kunna deleta
   if ad && ad["user_id"] == session[:user_id]
     db.execute("DELETE FROM ads WHERE ad_id = ?", [ad_id])
   end

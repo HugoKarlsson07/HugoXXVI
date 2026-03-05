@@ -6,7 +6,7 @@ def db()
     end
   end
 
-# Kontrollera att användaren är inloggad
+# Kontrollera att användaren är inloggad annars dirigeras den till logga in.
 def user_inloggad()
   if session[:user_id].nil?
     redirect '/login'
