@@ -30,8 +30,8 @@ def create_tables(db)
     name TEXT NOT NULL, 
     email TEXT UNIQUE NOT NULL, 
     telephone TEXT, 
-    password_digest TEXT
-  )')
+    password_digest TEXT, user_tag_id INTEGER DEFAULT 1
+  )') #user tag är nivå du börjar på 1 och behöver läggas in som 2 för att bli admin.
 
   # Categories
   db.execute('CREATE TABLE IF NOT EXISTS categories (
@@ -94,8 +94,8 @@ def populate_tables(db)
   password_digest = BCrypt::Password.create('Leiastar1')
   
   #Skapa användaren
-  db.execute('INSERT INTO users (name, email, telephone, password_digest) VALUES (?, ?, ?, ?)', 
-             ['Hugo Karlsson', 'hugooscark@gmail.com', '0721888592', password_digest])
+  db.execute('INSERT INTO users (name, email, telephone, password_digest, user_tag_id) VALUES (?, ?, ?, ?,?)', 
+             ['Hugo Karlsson', 'hugooscark@gmail.com', '0721888592', password_digest, 2]) #nu kommer denna vara admin
   hugo_id = db.last_insert_row_id
 
   #Skapa en kategori

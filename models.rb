@@ -9,7 +9,16 @@ def db()
 # Kontrollera att användaren är inloggad annars dirigeras den till logga in.
 def user_inloggad()
   if session[:user_id].nil?
-    redirect '/login'
+    redirect('/login')
+  end
+end
+
+#kontrollerar först om du är admin sen om du äger den.
+def user_admin()
+  if session[:user_tag_id] == 2
+
+  elsif session[:user_id].nil?
+    redirect('/login')
   end
 end
 
