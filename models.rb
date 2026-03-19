@@ -2,9 +2,12 @@ def db()
     @db ||= begin
       d = SQLite3::Database.new('db/databas.db')
       d.results_as_hash = true
+
+     
       d
     end
   end
+
 
 # Kontrollera att användaren är inloggad annars dirigeras den till logga in.
 def user_inloggad()
@@ -13,14 +16,16 @@ def user_inloggad()
   end
 end
 
-#kontrollerar först om du är admin sen om du äger den.
-def user_admin()
-  if session[:user_tag_id] == 2
-
-  elsif session[:user_id].nil?
-    redirect('/login')
-  end
+def admin?
+  session[:user_tag_id] == 2
 end
+
+def require_admin
+  redirect('/login') if session[:user_id].nil?
+  redirect('/error') unless admin?
+end
+
+
 
 #laddar in categorier som instans variabler
 def load_select_data

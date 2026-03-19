@@ -1,0 +1,22 @@
+h1 Admin: Alla annonser, hej 
+
+nav
+  a href="/" Tillbaka
+  a href="/ads" Skapa annons
+  a href="/my_ads" Mina annonser
+
+- if @ads.empty?
+  p Inga annonser hittades.
+- else
+  .container
+    - @ads.each do |ad|
+      .ad-card
+        h2 = ad["title"]
+        - if ad["image_path"]
+          img.ad-image src=ad["image_path"] alt=ad["title"]
+        p = ad["description"]
+        p.price = "#{ad["price"]} kr"
+        p.status = ad["status"]
+        p Annonsör: #{ad["user_name"] || "Okänd"}
+        form action="/delete_ad/#{ad["ad_id"]}" method="post" style="display:inline;"
+          button type="submit" onclick="return confirm('Är du säker?')" Ta bort

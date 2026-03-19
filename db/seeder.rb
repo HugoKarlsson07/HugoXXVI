@@ -30,7 +30,8 @@ def create_tables(db)
     name TEXT NOT NULL, 
     email TEXT UNIQUE NOT NULL, 
     telephone TEXT, 
-    password_digest TEXT, user_tag_id INTEGER DEFAULT 1
+    password_digest TEXT, 
+    user_tag_id INTEGER DEFAULT 1
   )') #user tag är nivå du börjar på 1 och behöver läggas in som 2 för att bli admin.
 
   # Categories

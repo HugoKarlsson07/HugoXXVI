@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circle Lines</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@400;700&display=swap');
+
+  :root {
+    --bg: #f5f2ec;
+    --surface: #edeae2;
+    --border: #d8d2c4;
+    --accent: #a0622a;
+    --accent2: #3a6fa8;
+    --dot: #2a2420;
+    --text: #7a7068;
+    --text-bright: #2a2420;
+    --line-draw: rgba(160, 98, 42, 0.7);
+    --line-existing: rgba(58, 111, 168, 0.5);
+    --glow: rgba(160, 98, 42, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  label {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100px;
+    height: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--glow);
+  }
+
+  .dot-count {
+    font-size: 0.85rem;
+    color: var(--accent);
+    min-width: 24px;
+    text-align: center;
+  }
+
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn.danger:hover {
+    border-color: #c87070;
+    color: #c87070;
+  }
+
+  .stat {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--text);
+  }
+  .stat span {
+    color: var(--accent2);
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  canvas {
+    cursor: crosshair;
+    display: block;
+  }
+
+  .hint {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #3a3a4a;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">Circle Lines</div>
+  <div class="controls">
+    <div class="control-group">
+      <label>Dots</label>
+      <input type="range" id="dotSlider" min="3" max="64" value="12">
+      <div class="dot-count" id="dotCount">12</div>
+    </div>
+    <div class="stat">Lines: <span id="lineCount">0</span></div>
+    <button class="btn" id="undoBtn">Undo</button>
+    <button class="btn danger" id="clearBtn">Clear</button>
+  </div>
+</header>
+
+<main>
+  <canvas id="canvas"></canvas>
+  <div class="hint">Click a dot to start a line — drag or click another dot to connect</div>
+</main>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const slider = document.getElementById('dotSlider');
+const dotCountEl = document.getElementById('dotCount');
+const lineCountEl = document.getElementById('lineCount');
+const clearBtn = document.getElementById('clearBtn');
+const undoBtn = document.getElementById('undoBtn');
+
+let numDots = 12;
+let dots = [];
+let lines = [];
+let selectedDot = null;
+let hoverDot = null;
+let mousePos = { x: 0, y: 0 };
+let W, H, radius, cx, cy;
+let animFrame;
+let pulseT = 0;
+
+function resize() {
+  const main = canvas.parentElement;
+  W = main.clientWidth;
+  H = main.clientHeight;
+  canvas.width = W;
+  canvas.height = H;
+  cx = W / 2;
+  cy = H / 2;
+  radius = Math.min(W, H) * 0.36;
+  buildDots();
+}
+
+function buildDots() {
+  dots = [];
+  for (let i = 0; i < numDots; i++) {
+    const angle = (2 * Math.PI * i / numDots) - Math.PI / 2;
+    dots.push({
+      x: cx + radius * Math.cos(angle),
+      y: cy + radius * Math.sin(angle),
+      index: i,
+      angle
+    });
+  }
+}
+
+function nearestDot(x, y, threshold = 22) {
+  let best = null, bestD = Infinity;
+  for (const d of dots) {
+    const dist = Math.hypot(x - d.x, y - d.y);
+    if (dist < threshold && dist < bestD) { best = d; bestD = dist; }
+  }
+  return best;
+}
+
+function lineExists(a, b) {
+  return lines.some(l =>
+    (l.a === a && l.b === b) || (l.a === b && l.b === a)
+  );
+}
+
+function draw() {
+  pulseT += 0.025;
+  ctx.clearRect(0, 0, W, H);
+
+  // Subtle radial gradient background
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 1.4);
+  grad.addColorStop(0, 'rgba(200,185,160,0.18)');
+  grad.addColorStop(1, 'rgba(245,242,236,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Circle ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(80,65,50,0.6)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Existing lines
+  for (const line of lines) {
+    const da = dots[line.a], db = dots[line.b];
+    const lineGrad = ctx.createLinearGradient(da.x, da.y, db.x, db.y);
+    lineGrad.addColorStop(0, 'rgba(58,111,168,0.6)');
+    lineGrad.addColorStop(0.5, 'rgba(160,98,42,0.45)');
+    lineGrad.addColorStop(1, 'rgba(58,111,168,0.6)');
+    ctx.beginPath();
+    ctx.moveTo(da.x, da.y);
+    ctx.lineTo(db.x, db.y);
+    ctx.strokeStyle = lineGrad;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  }
+
+  // Preview line while dragging/selecting
+  if (selectedDot !== null) {
+    const sd = dots[selectedDot];
+    const target = hoverDot !== null ? dots[hoverDot] : mousePos;
+    ctx.beginPath();
+    ctx.moveTo(sd.x, sd.y);
+    ctx.lineTo(target.x, target.y);
+    ctx.strokeStyle = 'rgba(160,98,42,0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Dots
+  for (const d of dots) {
+    const isSelected = selectedDot === d.index;
+    const isHovered = hoverDot === d.index;
+    const pulse = isSelected ? 0.5 + 0.5 * Math.sin(pulseT * 3) : 0;
+
+    // Glow for selected/hovered
+    if (isSelected || isHovered) {
+      const gR = isSelected ? 18 + pulse * 6 : 14;
+      const glow = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, gR);
+      glow.addColorStop(0, isSelected ? 'rgba(160,98,42,0.3)' : 'rgba(58,111,168,0.2)');
+      glow.addColorStop(1, 'rgba(245,242,236,0)');
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, gR, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+    }
+
+    // Dot body
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, isSelected ? 6 + pulse * 1.5 : isHovered ? 5.5 : 4.5, 0, Math.PI * 2);
+    ctx.fillStyle = isSelected ? '#a0622a' : isHovered ? '#3a6fa8' : '#5a4a38';
+    ctx.fill();
+
+    // Dot ring
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, isSelected ? 9 + pulse * 2 : isHovered ? 8 : 7, 0, Math.PI * 2);
+    ctx.strokeStyle = isSelected ? 'rgba(160,98,42,0.5)' : isHovered ? 'rgba(58,111,168,0.45)' : 'rgba(80,60,40,0.55)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Dot index label (only show when few dots)
+    if (numDots <= 24) {
+      const labelDist = radius + 18;
+      const lx = cx + labelDist * Math.cos(d.angle);
+      const ly = cy + labelDist * Math.sin(d.angle);
+      ctx.fillStyle = isSelected ? '#a0622a' : isHovered ? '#3a6fa8' : '#6a5a48';
+      ctx.font = '9px DM Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(d.index, lx, ly);
+    }
+  }
+
+  animFrame = requestAnimationFrame(draw);
+}
+
+// Events
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  mousePos = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  const nd = nearestDot(mousePos.x, mousePos.y);
+  hoverDot = nd ? nd.index : null;
+  canvas.style.cursor = nd ? 'pointer' : 'crosshair';
+});
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const nd = nearestDot(mx, my);
+
+  if (!nd) {
+    // Click empty space — deselect
+    selectedDot = null;
+    return;
+  }
+
+  if (selectedDot === null) {
+    // Select first dot
+    selectedDot = nd.index;
+  } else if (nd.index === selectedDot) {
+    // Click same dot — deselect
+    selectedDot = null;
+  } else {
+    // Connect the two dots
+    if (!lineExists(selectedDot, nd.index)) {
+      lines.push({ a: selectedDot, b: nd.index });
+      lineCountEl.textContent = lines.length;
+    }
+    selectedDot = nd.index; // keep chain going
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  hoverDot = null;
+});
+
+slider.addEventListener('input', () => {
+  numDots = parseInt(slider.value);
+  dotCountEl.textContent = numDots;
+  lines = [];
+  lineCountEl.textContent = 0;
+  selectedDot = null;
+  buildDots();
+});
+
+clearBtn.addEventListener('click', () => {
+  lines = [];
+  lineCountEl.textContent = 0;
+  selectedDot = null;
+});
+
+undoBtn.addEventListener('click', () => {
+  if (lines.length > 0) {
+    lines.pop();
+    lineCountEl.textContent = lines.length;
+  }
+  selectedDot = null;
+});
+
+window.addEventListener('resize', () => {
+  cancelAnimationFrame(animFrame);
+  resize();
+  draw();
+});
+
+// Keyboard shortcut
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') selectedDot = null;
+  if ((e.key === 'z' && (e.ctrlKey || e.metaKey)) || e.key === 'Backspace') {
+    if (lines.length > 0) { lines.pop(); lineCountEl.textContent = lines.length; }
+  }
+});
+
+resize();
+draw();
+</script>
+</body>
+</html>

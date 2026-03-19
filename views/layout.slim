@@ -9,5 +9,7 @@ html lang="en"
     header 
         nav 
            h1 Blocket-kopia 
+           - if session[:user_tag_id] == 2
+             a href="/admin" Admin
     body 
         ==yield 

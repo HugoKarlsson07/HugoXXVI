@@ -8,6 +8,13 @@ require_relative 'models.rb'
 
 enable :sessions
 
+get('/admin') do
+  require_admin()
+  db()
+  @ads = db.execute("SELECT ads.*, users.name AS user_name FROM ads LEFT JOIN users ON ads.user_id = users.user_id")
+  slim(:admin_ads)
+end
+
 
 get('/ads') do
   user_inloggad() 
@@ -115,11 +122,12 @@ post('/register') do
   )
 
   user = db.execute(
-    "SELECT user_id FROM users WHERE email = ?",
+    "SELECT user_id, user_tag_id FROM users WHERE email = ?",
     [email]
   ).first
 
   session[:user_id] = user["user_id"]
+  session[:user_tag_id] = user["user_tag_id"]
   redirect('/')
 end
 
@@ -131,6 +139,7 @@ post('/login') do
 
   if user && BCrypt::Password.new(user["password_digest"]) == pwd
     session[:user_id] = user["user_id"]
+    session[:user_tag_id] = user["user_tag_id"]
     redirect('/')
   else
     redirect('/error')
@@ -182,10 +191,14 @@ post('/delete_ad/:id') do
   
   ad = db.execute("SELECT * FROM ads WHERE ad_id = ?", [ad_id]).first
 
-  # Kontrollera att användaren äger annonsen för att den ska kunna deleta
-  if ad && ad["user_id"] == session[:user_id]
+  # Kontrollera att användaren äger annonsen, eller är admin
+  if ad && (ad["user_id"] == session[:user_id] || session[:user_tag_id] == 2)
     db.execute("DELETE FROM ads WHERE ad_id = ?", [ad_id])
   end
   
-  redirect('/my_ads')
+  if session[:user_tag_id] == 2
+    redirect('/admin')
+  else
+    redirect('/my_ads')
+  end
 end
