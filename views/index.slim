@@ -18,5 +18,16 @@ body
                     p = ad["description"]
                     p.price  = "#{ad["price"]} kr"
                     p.status = ad["status"]
+                    - if ad["owner_name"]
+                        p Owner: #{ad["owner_name"]}
+                    - if ad["owner_email"]
+                        p Kontakt: #{ad["owner_email"]} / #{ad["owner_phone"] || 'ingen telefon'}
+                    p Annonsör: #{ad["owner_name"] || "Okänd"}
+                    p = "#{like_count(ad['ad_id'])} likes"
+                    form action="/ads/#{ad['ad_id']}/like" method="post"
+                        - if liked_by_user?(ad["ad_id"], session[:user_id])
+                            button type="submit" Ta bort like
+                        - else
+                            button type="submit" Gilla
                     
         

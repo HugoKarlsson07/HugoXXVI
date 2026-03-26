@@ -2,13 +2,19 @@ def db()
     @db ||= begin
       d = SQLite3::Database.new('db/databas.db')
       d.results_as_hash = true
-
-     
       d
     end
-  end
+end
 
+def liked_by_user?(ad_id, user_id)
+  return false if user_id.nil?
+  rows = db.execute("SELECT 1 FROM likes WHERE ad_id = ? AND user_id = ?", [ad_id, user_id])
+  !rows.empty?
+end
 
+def like_count(ad_id)
+  db.execute("SELECT COUNT(*) AS count FROM likes WHERE ad_id = ?", [ad_id]).first["count"]
+end
 # Kontrollera att användaren är inloggad annars dirigeras den till logga in.
 def user_inloggad()
   if session[:user_id].nil?

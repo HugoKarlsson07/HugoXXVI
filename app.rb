@@ -11,7 +11,7 @@ enable :sessions
 get('/admin') do
   require_admin()
   db()
-  @ads = db.execute("SELECT ads.*, users.name AS user_name FROM ads LEFT JOIN users ON ads.user_id = users.user_id")
+  @ads = db.execute("SELECT ads.*, users.name AS owner_name, users.email AS owner_email, users.telephone AS owner_phone FROM ads LEFT JOIN users ON ads.user_id = users.user_id")
   slim(:admin_ads)
 end
 
@@ -24,7 +24,7 @@ get('/ads') do
 end
 get('/') do
   db()
-  @ads = db.execute("SELECT * FROM ads")
+  @ads = db.execute("SELECT ads.*, users.name AS owner_name, users.email AS owner_email, users.telephone AS owner_phone FROM ads LEFT JOIN users ON ads.user_id = users.user_id")
   slim(:index)
 end
 get('/login') do
@@ -67,22 +67,23 @@ post('/ads') do
   location_id = params[:location_id]
   user_id = session[:user_id]
   image_path = nil
-  
+
   # Hantera bilduppladdning
   if params[:image] && params[:image][:filename]
     filename = params[:image][:filename]
-    # Skapa en unik filnamn för att undvika konflikter genom att ge den tiden som den laddas upp och sen fil namnet som den hade innan.
-    unique_filename = "#{Time.now.to_i}_#{filename}"
+    unique_filename = "#{Time.now.to_i}_#{filename.gsub(/[^\w\.\-]/, '_')}" #regex tar bort alla / vilket gör att den inte kan lyckas köra någon kod eller komma åt filer. 
     file_path = File.join('public', 'img', unique_filename)
-    
-    # Spara bilden
-    File.open(file_path, 'wb') do |f|
-      f.write(params[:image][:tempfile].read)
+
+    begin
+      File.open(file_path, 'wb') do |f|
+        f.write(params[:image][:tempfile].read)
+      end
+      image_path = "/img/#{unique_filename}"
+    rescue StandardError => e
+      halt 400, "Fel vid bilduppladdning: #{e.message}"
     end
-    
-    image_path = "/img/#{unique_filename}"
   end
-  
+
   db = SQLite3::Database.new('db/databas.db')
   
 
@@ -93,7 +94,21 @@ post('/ads') do
   redirect('/')
 end
 
+post('/ads/:id/like') do
+  user_inloggad()
+  db()
 
+  ad_id = params[:id].to_i
+  user_id = session[:user_id]
+
+  if liked_by_user?(ad_id, user_id)
+    db.execute("DELETE FROM likes WHERE ad_id = ? AND user_id = ?", [ad_id, user_id])
+  else
+    db.execute("INSERT OR IGNORE INTO likes (user_id, ad_id) VALUES (?, ?)", [user_id, ad_id])
+  end
+
+  redirect('/')
+end
 
 post('/register') do
   name = params["user"]

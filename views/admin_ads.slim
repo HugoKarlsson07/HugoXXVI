@@ -14,9 +14,12 @@ nav
         h2 = ad["title"]
         - if ad["image_path"]
           img.ad-image src=ad["image_path"] alt=ad["title"]
-        p = ad["description"]
-        p.price = "#{ad["price"]} kr"
+        p.price  = "#{ad["price"]} kr"
         p.status = ad["status"]
-        p Annonsör: #{ad["user_name"] || "Okänd"}
+        - if ad["owner_name"]
+          p Owner: #{ad["owner_name"]}
+        - if ad["owner_email"]
+          p Kontakt: #{ad["owner_email"]} / #{ad["owner_phone"] || 'ingen telefon'}
+        p Annonsör: #{ad["owner_name"] || "Okänd"}
         form action="/delete_ad/#{ad["ad_id"]}" method="post" style="display:inline;"
           button type="submit" onclick="return confirm('Är du säker?')" Ta bort
