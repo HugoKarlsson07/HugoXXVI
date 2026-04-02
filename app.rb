@@ -3,15 +3,19 @@ require 'slim'
 require 'sqlite3'
 require 'sinatra/reloader'
 require 'bcrypt'
-require_relative 'models.rb'
+require_relative './model/model.rb'
+require_relative './model/help.rb'
 
 
 enable :sessions
+include Model
+include Helper
+
 
 get('/admin') do
   require_admin()
   db()
-  @ads = db.execute("SELECT ads.*, users.name AS owner_name, users.email AS owner_email, users.telephone AS owner_phone FROM ads LEFT JOIN users ON ads.user_id = users.user_id")
+  load_ads_data()
   slim(:admin_ads)
 end
 
@@ -24,14 +28,14 @@ get('/ads') do
 end
 get('/') do
   db()
-  @ads = db.execute("SELECT ads.*, users.name AS owner_name, users.email AS owner_email, users.telephone AS owner_phone FROM ads LEFT JOIN users ON ads.user_id = users.user_id")
+ load_ads_data()
   slim(:index)
 end
 get('/login') do
   slim(:login)
 end
 get('/register') do
-  slim(:register)
+  slim(:register) 
 end
 #den här är bra att ha om jag vill att det ska fungera
 get('/error') do
@@ -40,7 +44,7 @@ end
 get('/my_ads') do
   user_inloggad()
   db() 
-  @my_ads = db.execute("SELECT * FROM ads WHERE user_id = ?", [session[:user_id]])
+  load_ads_user_data([session[:user_id]])
   slim(:"my_ads")
 end
 
@@ -49,7 +53,7 @@ get('/update_ad/:id') do
   db()
 
   ad_id = params[:id].to_i
-  @ad = db.execute("SELECT * FROM ads WHERE ad_id = ?", [ad_id]).first
+  @ad = load_ad_id(ad_id)
   if @ad.nil? || @ad['user_id'] != session[:user_id]
     redirect '/error'
   end
@@ -86,27 +90,16 @@ post('/ads') do
 
   db = SQLite3::Database.new('db/databas.db')
   
-
-  db.execute("INSERT INTO ads (title, description, price, status, image_path, user_id, category_id, location_id) 
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
-              [title, description, price, "Aktiv", image_path, user_id, category_id, location_id])
-
+  create_new_ad(title, description, price,image_path, user_id, category_id, location_id)
   redirect('/')
 end
 
 post('/ads/:id/like') do
   user_inloggad()
   db()
-
   ad_id = params[:id].to_i
   user_id = session[:user_id]
-
-  if liked_by_user?(ad_id, user_id)
-    db.execute("DELETE FROM likes WHERE ad_id = ? AND user_id = ?", [ad_id, user_id])
-  else
-    db.execute("INSERT OR IGNORE INTO likes (user_id, ad_id) VALUES (?, ?)", [user_id, ad_id])
-  end
-
+  update_database_likes(ad_id, user_id)
   redirect('/')
 end
 
@@ -125,22 +118,8 @@ post('/register') do
   if existing_user(email)
     redirect('/register')
   end
-
-
-  # lösenord
-  pwd_digest = BCrypt::Password.create(pwd)
-
-  # skapar nu användare
-  db.execute(
-    "INSERT INTO users (name, email, telephone, password_digest) VALUES (?, ?, ?, ?)",
-    [name, email, telephone, pwd_digest]
-  )
-
-  user = db.execute(
-    "SELECT user_id, user_tag_id FROM users WHERE email = ?",
-    [email]
-  ).first
-
+  pwd_digest = BCrypt::Password.create(pwd) 
+  user = get_user(email)
   session[:user_id] = user["user_id"]
   session[:user_tag_id] = user["user_tag_id"]
   redirect('/')
@@ -150,8 +129,7 @@ post('/login') do
   email = params["email"]
   pwd   = params["pwd"]
   db()
-  user = db.execute("SELECT * FROM users WHERE email = ?", [email]).first
-
+  user = get_user(email)
   if user && BCrypt::Password.new(user["password_digest"]) == pwd
     session[:user_id] = user["user_id"]
     session[:user_tag_id] = user["user_tag_id"]
@@ -169,7 +147,7 @@ post('/update_ad/:id') do
   db()
 
   ad_id = params[:id].to_i
-  ad = db.execute("SELECT * FROM ads WHERE ad_id = ?", [ad_id]).first
+  ad = load_ad_id(ad_id)
   if ad.nil? || ad['user_id'] != session[:user_id]
     redirect '/error'
   end
@@ -191,10 +169,7 @@ post('/update_ad/:id') do
     end
     image_path = "/img/#{unique_filename}"
   end
-
-  db.execute("UPDATE ads SET title = ?, description = ?, price = ?, category_id = ?, location_id = ?, image_path = ? WHERE ad_id = ?",
-             [title, description, price, category_id, location_id, image_path, ad_id])
-
+  update_ad(title, description, price, category_id, location_id, image_path, ad_id)
   redirect('/my_ads')
 end
 
@@ -203,12 +178,10 @@ post('/delete_ad/:id') do
   db()
 
   ad_id = params[:id].to_i
-  
-  ad = db.execute("SELECT * FROM ads WHERE ad_id = ?", [ad_id]).first
-
+  ad = load_ad_id(ad_id)
   # Kontrollera att användaren äger annonsen, eller är admin
   if ad && (ad["user_id"] == session[:user_id] || session[:user_tag_id] == 2)
-    db.execute("DELETE FROM ads WHERE ad_id = ?", [ad_id])
+    delete_ad(ad_id)
   end
   
   if session[:user_tag_id] == 2
