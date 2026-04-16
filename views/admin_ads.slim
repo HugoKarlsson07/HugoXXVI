@@ -2,12 +2,13 @@ h1 Admin: Alla annonser, hej
 
 nav
   a href="/" Tillbaka
-  a href="/ads" Skapa annons
-  a href="/my_ads" Mina annonser
+  a href="/ads/new" Skapa annons
+  a href="/ads/mine" Mina annonser
 
 - if @ads.empty?
   p Inga annonser hittades.
 - else
+  - shown_users = []
   .container
     - @ads.each do |ad|
       .ad-card
@@ -21,5 +22,11 @@ nav
         - if ad["owner_email"]
           p Kontakt: #{ad["owner_email"]} / #{ad["owner_phone"] || 'ingen telefon'}
         p Annonsör: #{ad["owner_name"] || "Okänd"}
-        form action="/delete_ad/#{ad["ad_id"]}" method="post" style="display:inline;"
+        form action="/ads/#{ad['ad_id']}" method="post" style="display:inline;"
+          input type="hidden" name="_method" value="delete"
           button type="submit" onclick="return confirm('Är du säker?')" Ta bort
+        - unless shown_users.include?(ad['user_id'])
+          - shown_users << ad['user_id']
+          form action="/admin/users/#{ad['user_id']}" method="post" style="display:inline;"
+            input type="hidden" name="_method" value="delete"
+            button type="submit" onclick="return confirm('Är du säker att du vill ta bort denna användare och alla deras annonser?')" Ta bort användare

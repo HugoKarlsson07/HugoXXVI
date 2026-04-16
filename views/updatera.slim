@@ -3,7 +3,7 @@ nav
   a href="/" Tillbaka
 section 
   .ad-card
-    form action="/update_ad/#{@ad['ad_id']}" method="POST" enctype="multipart/form-data"
+    form action="/ads/#{@ad['ad_id']}" method="POST" enctype="multipart/form-data"
       input type="text" name="title" placeholder="Vad säljer du?" required value="#{@ad['title']}"
       textarea name="description" placeholder="Beskrivning..."= @ad['description']
       input type="number" name="price" placeholder="Pris i kr" value="#{@ad['price']}"

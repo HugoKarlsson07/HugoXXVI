@@ -1,3 +1,9 @@
+# Test version of ad creation with MIME type validation.
+# This is a standalone test file for image upload handling.
+
+# Creates a new ad with image validation.
+# Validates that uploaded image is a PNG using system 'file' command.
+# @return [String, void] Error message or redirects to home.
 post('/ads') do
   # Hämta data från formuläret
   title = params[:title]

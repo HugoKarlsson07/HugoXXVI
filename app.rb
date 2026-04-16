@@ -1,13 +1,15 @@
-require 'sinatra'
-require 'slim'
-require 'sqlite3'
-require 'sinatra/reloader'
-require 'bcrypt'
-require_relative './model/model.rb'
-require_relative './model/help.rb'
+require 'sinatra'          # Web framework
+require 'slim'             # Template engine
+require 'sqlite3'          # Database library
+require 'sinatra/reloader' # Auto-reload for development
+require 'bcrypt'           # Password hashing
+require_relative './model/model.rb'  # Database models
+require_relative './model/help.rb'   # Helper functions
 
-
+# Enable session support for user authentication
 enable :sessions
+
+enable :method_override
 include Model
 include Helper
 
@@ -19,36 +21,69 @@ get('/admin') do
   slim(:admin_ads)
 end
 
+# Deletes a user and all their ads.
+# Requires admin privileges.
+# @param user_id [Integer] The ID of the user to delete.
+# @return [void] Redirects to admin page.
+delete('/admin/users/:user_id') do
+  require_admin()
+  db()
 
-get('/ads') do
-  user_inloggad() 
+  user_id = params[:user_id].to_i
+
+  # Prevent admin from deleting themselves
+  if user_id == session[:user_id]
+    redirect('/admin')  # or show error
+  end
+
+  # Delete all ads by the user
+  db.execute("DELETE FROM ads WHERE user_id = ?", [user_id])
+
+  # Delete the user
+  db.execute("DELETE FROM users WHERE user_id = ?", [user_id])
+
+  redirect('/admin')
+end
+
+
+get('/ads/new') do
+  user_inloggad()
   db()
   load_select_data()
   slim(:"ads")
 end
 get('/') do
   db()
- load_ads_data()
+  load_ads_data()
   slim(:index)
 end
-get('/login') do
+get('/sessions/new') do
   slim(:login)
 end
+get('/login') do
+  redirect('/sessions/new')
+end
+get('/users/new') do
+  slim(:register)
+end
 get('/register') do
-  slim(:register) 
+  redirect('/users/new')
+end
+get('/ads') do
+  redirect('/ads/new')
 end
 #den här är bra att ha om jag vill att det ska fungera
 get('/error') do
   slim(:error)
 end
-get('/my_ads') do
+get('/ads/mine') do
   user_inloggad()
-  db() 
+  db()
   load_ads_user_data([session[:user_id]])
   slim(:"my_ads")
 end
 
-get('/update_ad/:id') do
+get('/ads/:id/edit') do
   user_inloggad()
   db()
 
@@ -103,34 +138,36 @@ post('/ads/:id/like') do
   redirect('/')
 end
 
-post('/register') do
+post('/users') do
   name = params["user"]
   email = params["email"]
   pwd  = params["pwd"]
   telephone = params["telephone"]
   db()
-
   # Validera att alla fält är ifyllda 
   if name.empty? || email.empty? || pwd.empty? || telephone.empty?
-    redirect('/register')
+    redirect('/users/new')
   end
    #kanske inte den finaste lösninge men den fungerar så att det inte går att skappa ett konto som inte går att logga in på.
   if existing_user(email)
-    redirect('/register')
+    redirect('/users/new')
   end
-  pwd_digest = BCrypt::Password.create(pwd) 
+
+  pwd_digest = BCrypt::Password.create(pwd)
+  create_user(name, email, telephone, pwd_digest)
   user = get_user(email)
   session[:user_id] = user["user_id"]
   session[:user_tag_id] = user["user_tag_id"]
   redirect('/')
 end
 
-post('/login') do
+post('/sessions') do
   email = params["email"]
   pwd   = params["pwd"]
   db()
   user = get_user(email)
-  if user && BCrypt::Password.new(user["password_digest"]) == pwd
+  
+  if BCrypt::Password.new(user["password_digest"]) == pwd
     session[:user_id] = user["user_id"]
     session[:user_tag_id] = user["user_tag_id"]
     redirect('/')
@@ -142,7 +179,7 @@ end
 
 
 #updaterar ads
-post('/update_ad/:id') do
+post('/ads/:id') do
   user_inloggad()
   db()
 
@@ -170,10 +207,10 @@ post('/update_ad/:id') do
     image_path = "/img/#{unique_filename}"
   end
   update_ad(title, description, price, category_id, location_id, image_path, ad_id)
-  redirect('/my_ads')
+  redirect('/ads/mine')
 end
 
-post('/delete_ad/:id') do
+delete('/ads/:id') do
   user_inloggad()
   db()
 
@@ -187,6 +224,6 @@ post('/delete_ad/:id') do
   if session[:user_tag_id] == 2
     redirect('/admin')
   else
-    redirect('/my_ads')
+    redirect('/ads/mine')
   end
 end
